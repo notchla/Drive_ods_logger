@@ -218,7 +218,10 @@ def main():
                         revision_index = get_revision_index(revisions, current_datetime)
                         my_file.set_revision(revisions[revision_index])
                         my_file.download_revision()
-                        my_file.get_difference()
+                        try:
+                            my_file.get_difference()
+                        except KeyError:
+                            LOG.info("calcoli not found in the currect ods files")
                         remove_file("revision_" + item["name"], LOG)
                     else:
                         my_file.file_created()
