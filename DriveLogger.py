@@ -211,10 +211,10 @@ def main():
 
                     results = service.revisions().list(fileId=item["id"]).execute()
                     revisions = results.get("revisions", [])
+                    my_file.setup_logger(level=logging.INFO)
 
                     if(len(revisions) > 1):
                         #create log for the last revision
-                        my_file.setup_logger(level=logging.INFO)
                         revision_index = get_revision_index(revisions, current_datetime)
                         my_file.set_revision(revisions[revision_index])
                         my_file.download_revision()
@@ -222,6 +222,10 @@ def main():
                             my_file.get_difference()
                         except KeyError:
                             LOG.info("calcoli not found in the currect ods files")
+                            remove_file(item["name"]+".log", LOG)
+                        except Exception as e:
+                            LOG.info("error : {0}".format(str(e)))
+                            remove_file(item["name"]+".log", LOG)
                         remove_file("revision_" + item["name"], LOG)
                     else:
                         my_file.file_created()
