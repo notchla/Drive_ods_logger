@@ -12,6 +12,7 @@ import pyexcel_ods as p
 import json
 import logging
 from string import ascii_uppercase
+import traceback
 
 ''' TODO:
     writecode to upload the file in a folder,
@@ -75,7 +76,7 @@ class File:
         done = False
         while done is False:
             status, done = downloader.next_chunk()
-            print("Download {0}".format(status.progress()*100))
+            self.LOG.info("Download file {0}".format(status.progress()*100))
 
         with open(self.item["name"], "wb") as out:
             out.write(fh.getvalue())
@@ -89,7 +90,7 @@ class File:
         done = False
         while done is False:
             status, done = downloader.next_chunk()
-            print("Download {0}".format(status.progress()*100))
+            self.LOG.info("Download revision {0}".format(status.progress()*100))
 
 
         with open("revision_" + self.item["name"], "wb") as out:
@@ -141,21 +142,30 @@ class File:
 
     #read the ods file as a dict and call __get_difference_rows on every row
     def get_difference(self):
+        self.file_log.info("<---------BEGIN LOG--------->")
         data_current = p.get_data(self.item["name"])
         json_string_current = json.dumps(data_current, default=date_converter)
         json_dict_current = json.loads(json_string_current)
-        sheet_current = json_dict_current["calcoli"] #calcoli is the name of the sheet that contains the analysis
-
+        try:
+            sheet_current = json_dict_current["calcoli"] #calcoli is the name of the sheet that contains the analysis
+        except KeyError:
+            self.LOG.info("dictionary content {0}".format(json_dict_current))
+            raise KeyError
+        
         data_modified = p.get_data("revision_" + self.item["name"])
         json_string_modified = json.dumps(data_modified, default=date_converter)
         json_dict_modified = json.loads(json_string_modified)
-        sheet_modified = json_dict_modified["calcoli"] #calcoli is the name of the sheet that contains the analysis"]
+        try:
+            sheet_modified = json_dict_modified["calcoli"] #calcoli is the name of the sheet that contains the analysis"]
+        except KeyError:
+            self.LOG.info("revision dictionary content {0}".format(json_dict_current))
+            raise KeyError
 
         for i in range(0, len(sheet_current)):
             row_current = sheet_current[i]
             row_modified = sheet_modified[i]
             self.__get_difference_rows(row_current, row_modified, i)
-
+        self.file_log.info("<---------END LOG--------->")
     def file_created(self):
         self.file_log.info("the file is created")
 
@@ -221,7 +231,8 @@ def main():
                         try:
                             my_file.get_difference()
                         except KeyError:
-                            LOG.info("calcoli not found in the currect ods files")
+                            LOG.info("calcoli not found in the current ods files")
+                            straceback.print_exc()
                             remove_file(item["name"]+".log", LOG)
                         except Exception as e:
                             LOG.info("error : {0}".format(str(e)))
