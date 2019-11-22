@@ -146,20 +146,14 @@ class File:
         data_current = p.get_data(self.item["name"])
         json_string_current = json.dumps(data_current, default=date_converter)
         json_dict_current = json.loads(json_string_current)
-        try:
-            sheet_current = json_dict_current["calcoli"] #calcoli is the name of the sheet that contains the analysis
-        except KeyError:
-            self.LOG.info("dictionary content {0}".format(json_dict_current))
-            raise KeyError
-        
+        sheet_current = json_dict_current["calcoli"] #calcoli is the name of the sheet that contains the analysis
+        self.LOG.info("dictionary content {0}".format(json_dict_current))
+
         data_modified = p.get_data("revision_" + self.item["name"])
         json_string_modified = json.dumps(data_modified, default=date_converter)
         json_dict_modified = json.loads(json_string_modified)
-        try:
-            sheet_modified = json_dict_modified["calcoli"] #calcoli is the name of the sheet that contains the analysis"]
-        except KeyError:
-            self.LOG.info("revision dictionary content {0}".format(json_dict_current))
-            raise KeyError
+        sheet_modified = json_dict_modified["calcoli"] #calcoli is the name of the sheet that contains the analysis"]
+        self.LOG.info("revision dictionary content {0}".format(json_dict_current))
 
         for i in range(0, len(sheet_current)):
             row_current = sheet_current[i]
