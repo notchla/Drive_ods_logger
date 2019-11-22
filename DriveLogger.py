@@ -146,20 +146,24 @@ class File:
         data_current = p.get_data(self.item["name"])
         json_string_current = json.dumps(data_current, default=date_converter)
         json_dict_current = json.loads(json_string_current)
-        sheet_current = json_dict_current["calcoli"] #calcoli is the name of the sheet that contains the analysis
-        self.LOG.info("dictionary content {0}".format(json_dict_current))
 
         data_modified = p.get_data("revision_" + self.item["name"])
         json_string_modified = json.dumps(data_modified, default=date_converter)
         json_dict_modified = json.loads(json_string_modified)
-        sheet_modified = json_dict_modified["calcoli"] #calcoli is the name of the sheet that contains the analysis"]
+
+        self.LOG.info("dictionary content {0}".format(json_dict_current))
         self.LOG.info("revision dictionary content {0}".format(json_dict_current))
 
-        for i in range(0, len(sheet_current)):
-            row_current = sheet_current[i]
-            row_modified = sheet_modified[i]
-            self.__get_difference_rows(row_current, row_modified, i)
+        for key in json_dict_current.keys():
+            sheet_current = json_dict_current[key]
+            sheet_modified = json_dict_modified[key]
+            if key != "modifiche":
+                for i in range(0, len(sheet_current)):
+                    row_current = sheet_current[i]
+                    row_modified = sheet_modified[i]
+                    self.__get_difference_rows(row_current, row_modified, i)
         self.file_log.info("<---------END LOG--------->")
+
     def file_created(self):
         self.file_log.info("the file is created")
 
@@ -225,7 +229,7 @@ def main():
                         try:
                             my_file.get_difference()
                         except KeyError:
-                            LOG.info("calcoli not found in the current ods files")
+                            LOG.info("error in reading the files content")
                             traceback.print_exc()
                             remove_file(item["name"]+".log", LOG)
                         except Exception as e:
