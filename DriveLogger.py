@@ -226,7 +226,7 @@ def main():
                             my_file.get_difference()
                         except KeyError:
                             LOG.info("calcoli not found in the current ods files")
-                            straceback.print_exc()
+                            traceback.print_exc()
                             remove_file(item["name"]+".log", LOG)
                         except Exception as e:
                             LOG.info("error : {0}".format(str(e)))
