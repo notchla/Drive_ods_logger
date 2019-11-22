@@ -16,6 +16,7 @@ import traceback
 
 ''' TODO:
     writecode to upload the file in a folder,
+    fix revision index if the revision and the current file are uploaded in a cron_time window
     '''
 
 # If modifying these scopes, delete the file token.pickle.
@@ -54,7 +55,7 @@ def get_revision_index(revisions, current_datetime):
     iter = 0
     while(minutes_from_last_change(revisions[iter]["modifiedTime"], current_datetime) > CRON_TIME):
         iter = iter + 1
-    return iter - 1 #find the first revision in the CRON_TIME minutes window
+    return iter - 1 if iter -1 > 0 else 0 #find the first revision in the CRON_TIME minutes window
 
 class File:
     def __init__(self, service, item, LOG):
@@ -153,7 +154,7 @@ class File:
 
         print(json_dict_current.keys())
         print(json_dict_modified.keys())
-        
+
         for key in json_dict_current.keys():
             sheet_current = json_dict_current[key]
             sheet_modified = json_dict_modified[key]
@@ -219,6 +220,7 @@ def main():
 
                     results = service.revisions().list(fileId=item["id"]).execute()
                     revisions = results.get("revisions", [])
+                    LOG.info(revisions)
                     my_file.setup_logger(level=logging.INFO)
 
                     if(len(revisions) > 1):
