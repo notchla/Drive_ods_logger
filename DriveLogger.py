@@ -151,6 +151,9 @@ class File:
         json_string_modified = json.dumps(data_modified, default=date_converter)
         json_dict_modified = json.loads(json_string_modified)
 
+        print(json_dict_current.keys())
+        print(json_dict_modified.keys())
+        
         for key in json_dict_current.keys():
             sheet_current = json_dict_current[key]
             sheet_modified = json_dict_modified[key]
