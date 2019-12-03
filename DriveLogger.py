@@ -152,16 +152,16 @@ class File:
         json_string_modified = json.dumps(data_modified, default=date_converter)
         json_dict_modified = json.loads(json_string_modified)
 
-        print(json_dict_current.keys())
-        print(json_dict_modified.keys())
-
         for key in json_dict_current.keys():
             sheet_current = json_dict_current[key]
             sheet_modified = json_dict_modified[key]
             if key != "modifiche":
                 for i in range(0, len(sheet_current)):
                     row_current = sheet_current[i]
-                    row_modified = sheet_modified[i]
+                    if i < len(sheet_modified):
+                        row_modified = sheet_modified[i]
+                    else:
+                        row_modified = "";
                     self.__get_difference_rows(row_current, row_modified, i)
         self.file_log.info("<---------END LOG--------->")
 
@@ -220,7 +220,6 @@ def main():
 
                     results = service.revisions().list(fileId=item["id"]).execute()
                     revisions = results.get("revisions", [])
-                    LOG.info(revisions)
                     my_file.setup_logger(level=logging.INFO)
 
                     if(len(revisions) > 1):
