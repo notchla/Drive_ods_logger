@@ -232,7 +232,7 @@ def main():
                         except KeyError:
                             LOG.info("error in reading the files content")
                             traceback.print_exc()
-                            print("item['lastModifyingUser'] {0}".format(my_file.item["lastModifyingUser"])
+                            print("item['lastModifyingUser'] {0}".format(my_file.item["lastModifyingUser"]))
                             remove_file(item["name"]+".log", LOG)
                         except Exception as e:
                             LOG.info("error : {0}".format(str(e)))
