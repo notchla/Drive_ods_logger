@@ -125,7 +125,7 @@ class File:
                 if(text_modified == ""):
                     text_modified = "\"\""
                 cell_coordinates = self.__calculate_ods_coordinate(index+1, i)
-                if "displayName" in self.item["lastModifyingUser"].keys:
+                if "displayName" in self.item["lastModifyingUser"].keys():
                     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.item["lastModifyingUser"]["displayName"]))
                 else:
                     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, "Not Found"))
@@ -135,7 +135,7 @@ class File:
             while(i != len(row_current)):
                 if(row_current[i]):
                     cell_coordinates = self.__calculate_ods_coordinate(index+1, i)
-                    if "displayName" in self.item["lastModifyingUser"].keys:
+                    if "displayName" in self.item["lastModifyingUser"].keys():
                         self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.item["lastModifyingUser"]["displayName"]))
                     else:
                         self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], "Not Found"))
@@ -145,7 +145,7 @@ class File:
             while(i != len(row_modified)):
                 if(row_modified[i]):
                     cell_coordinates = self.__calculate_ods_coordinate(index+1, i)
-                    if "displayName" in self.item["lastModifyingUser"].keys:
+                    if "displayName" in self.item["lastModifyingUser"].keys():
                         self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.item["lastModifyingUser"]["displayName"]))
                     else:
                         self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], "Not Found"))
