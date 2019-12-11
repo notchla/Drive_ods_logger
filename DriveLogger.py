@@ -128,7 +128,7 @@ class File:
                 if "displayName" in self.item["lastModifyingUser"].keys():
                     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.item["lastModifyingUser"]["displayName"]))
                 else:
-                    results = self.service.files().get(fileId=self.item["id"], fields="files(lastModifyingUser)").execute()
+                    results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
                     self.LOG.info(results)
                     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, "Not Found"))
 
@@ -140,7 +140,7 @@ class File:
                     if "displayName" in self.item["lastModifyingUser"].keys():
                         self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.item["lastModifyingUser"]["displayName"]))
                     else:
-                        results = self.service.files().get(fileId=self.item["id"], fields="files(lastModifyingUser)").execute()
+                        results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
                         self.LOG.info(results)
                         self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], "Not Found"))
                 i += 1
@@ -152,7 +152,7 @@ class File:
                     if "displayName" in self.item["lastModifyingUser"].keys():
                         self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.item["lastModifyingUser"]["displayName"]))
                     else:
-                        results = self.service.files().get(fileId=self.item["id"], fields="files(lastModifyingUser)").execute()
+                        results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
                         self.LOG.info(results)
                         self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], "Not Found"))
                 i += 1
