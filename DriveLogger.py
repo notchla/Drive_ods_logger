@@ -64,6 +64,7 @@ class File:
         self.LOG = LOG #app logger
         self.revision = None #DICT that holds the revision information
         self.file_log = None #file logger
+        self.lastModifyingUser = None #the user that last modified the file
 
     def set_revision(self, revision):
         self.revision = revision
@@ -128,9 +129,13 @@ class File:
                 if "displayName" in self.item["lastModifyingUser"].keys():
                     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.item["lastModifyingUser"]["displayName"]))
                 else:
-                    results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                    self.LOG.info(results)
-                    self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, "Not Found"))
+                    if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
+                        results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
+                        if "displayName" in results.keys():
+                            self.lastModifyingUser = results["displayName"]
+                        elif:
+                            self.lastModifyingUser = "not found"
+                    self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.lastModifyingUser))
 
         if(len(row_current) > len(row_modified)):
             i = min_range
@@ -140,9 +145,13 @@ class File:
                     if "displayName" in self.item["lastModifyingUser"].keys():
                         self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.item["lastModifyingUser"]["displayName"]))
                     else:
-                        results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                        self.LOG.info(results)
-                        self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], "Not Found"))
+                        if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
+                            results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
+                            if "displayName" in results.keys():
+                                self.lastModifyingUser = results["displayName"]
+                            elif:
+                                self.lastModifyingUser = "not found"
+                        self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.lastModifyingUser))
                 i += 1
         elif(len(row_current) < len(row_modified)):
             i = min_range
@@ -152,9 +161,13 @@ class File:
                     if "displayName" in self.item["lastModifyingUser"].keys():
                         self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.item["lastModifyingUser"]["displayName"]))
                     else:
-                        results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                        self.LOG.info(results)
-                        self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], "Not Found"))
+                        if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
+                            results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
+                            if "displayName" in results.keys():
+                                self.lastModifyingUser = results["displayName"]
+                            elif:
+                                self.lastModifyingUser = "not found"
+                        self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.lastModifyingUser))
                 i += 1
 
     #read the ods file as a dict and call __get_difference_rows on every row
@@ -248,7 +261,6 @@ def main():
                         except KeyError:
                             LOG.info("error in reading the files content")
                             traceback.print_exc()
-                            print("item['lastModifyingUser'] {0}".format(my_file.item["lastModifyingUser"]))
                             remove_file(item["name"]+".log", LOG)
                         except Exception as e:
                             LOG.info("error : {0}".format(str(e)))
