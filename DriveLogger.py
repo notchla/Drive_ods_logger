@@ -232,7 +232,7 @@ def main():
     while True:
         # Call the Drive v3 API
         response = service.files().list(
-            q = "mimeType='application/vnd.oasis.opendocument.spreadsheet' and trashed=false and ('0Bx4ptgObUFZfaUw4ekRpdXhyNzQ' in parents or '0Bx4ptgObUFZfdlhWMnpZWWtUbzA' in parents)", pageSize=100, fields="nextPageToken, files(id,name,modifiedTime,lastModifyingUser)", pageToken=page_token).execute()
+            q = "mimeType='application/vnd.oasis.opendocument.spreadsheet' and trashed=false and ('0Bx4ptgObUFZfaUw4ekRpdXhyNzQ' in parents or '0Bx4ptgObUFZfdlhWMnpZWWtUbzA' in parents)", pageSize=1000, fields="nextPageToken, files(id,name,modifiedTime,lastModifyingUser)", pageToken=page_token).execute()
         items = response.get('files', [])
 
         current_datetime = datetime.datetime.utcnow()
