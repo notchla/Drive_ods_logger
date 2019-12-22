@@ -13,6 +13,7 @@ import json
 import logging
 from string import ascii_uppercase
 import traceback
+import re
 
 ''' TODO:
     writecode to upload the file in a folder
@@ -22,6 +23,7 @@ import traceback
 SCOPES = ['https://www.googleapis.com/auth/drive']
 alphabet = list(ascii_uppercase)
 CRON_TIME = 5 #the time between one execution and the next
+filename_regex = re.compile(r'\d\d-')
 
 def setup_logger(name, log_file, level=logging.WARNING):
 
@@ -232,7 +234,7 @@ def main():
     while True:
         # Call the Drive v3 API
         response = service.files().list(
-            q = "mimeType='application/vnd.oasis.opendocument.spreadsheet' and trashed=false and ('0Bx4ptgObUFZfaUw4ekRpdXhyNzQ' in parents or '0Bx4ptgObUFZfdlhWMnpZWWtUbzA' in parents)", pageSize=1000, fields="nextPageToken, files(id,name,modifiedTime,lastModifyingUser)", pageToken=page_token).execute()
+            q = "mimeType='application/vnd.oasis.opendocument.spreadsheet' and trashed=false", pageSize=1000, fields="nextPageToken, files(id,name,modifiedTime,lastModifyingUser)", pageToken=page_token).execute()
         items = response.get('files', [])
 
         current_datetime = datetime.datetime.utcnow()
@@ -241,35 +243,37 @@ def main():
             LOG.info("No files found using the provided query")
         else:
             for item in items:
-                minutes = minutes_from_last_change(item["modifiedTime"], current_datetime)
-                if(minutes < CRON_TIME):
-                    my_file = File(service, item, LOG)
-                    my_file.download_file()
+                re_results = filename_regex.search(item["name"])
+                if re_results is not None:
+                    minutes = minutes_from_last_change(item["modifiedTime"], current_datetime)
+                    if(minutes < CRON_TIME):
+                        my_file = File(service, item, LOG)
+                        my_file.download_file()
 
-                    results = service.revisions().list(fileId=item["id"]).execute()
-                    revisions = results.get("revisions", [])
-                    my_file.setup_logger(level=logging.INFO)
+                        results = service.revisions().list(fileId=item["id"]).execute()
+                        revisions = results.get("revisions", [])
+                        my_file.setup_logger(level=logging.INFO)
 
-                    if(len(revisions) > 1):
-                        #create log for the last revision
-                        revision_index = get_revision_index(revisions, current_datetime)
-                        my_file.set_revision(revisions[revision_index])
-                        my_file.download_revision()
-                        try:
-                            my_file.get_difference()
-                        except KeyError:
-                            LOG.info("error in reading the files content")
-                            traceback.print_exc()
-                            remove_file(item["name"]+".log", LOG)
-                        except Exception as e:
-                            LOG.info("error : {0}".format(str(e)))
-                            remove_file(item["name"]+".log", LOG)
-                        remove_file("revision_" + item["name"], LOG)
-                    else:
-                        my_file.file_created()
-                    remove_file(item["name"], LOG)
+                        if(len(revisions) > 1):
+                            #create log for the last revision
+                            revision_index = get_revision_index(revisions, current_datetime)
+                            my_file.set_revision(revisions[revision_index])
+                            my_file.download_revision()
+                            try:
+                                my_file.get_difference()
+                            except KeyError:
+                                LOG.info("error in reading the files content")
+                                traceback.print_exc()
+                                remove_file(item["name"]+".log", LOG)
+                            except Exception as e:
+                                LOG.info("error : {0}".format(str(e)))
+                                remove_file(item["name"]+".log", LOG)
+                            remove_file("revision_" + item["name"], LOG)
+                        else:
+                            my_file.file_created()
+                        remove_file(item["name"], LOG)
 
-                    del my_file
+                        del my_file
 
         page_token = response.get('nextPageToken', None)
         if page_token is None:
