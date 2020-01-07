@@ -3,7 +3,7 @@ from __future__ import print_function
 import pickle
 import os.path
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import datetime
@@ -14,9 +14,9 @@ import logging
 from string import ascii_uppercase
 import traceback
 import re
+import shelve
 
 ''' TODO:
-    writecode to upload the file in a folder
     '''
 
 # If modifying these scopes, delete the file token.pickle.
@@ -24,6 +24,8 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 alphabet = list(ascii_uppercase)
 CRON_TIME = 5 #the time between one execution and the next
 filename_regex = re.compile(r'\d\d-')
+file_already_logged = False
+folder_id = "1RvdbykGns22dh7t9q6P0mqINk_Ni0x-T" #the id of the folder where the logfiles are stored
 
 def setup_logger(name, log_file, level=logging.WARNING):
 
@@ -71,9 +73,11 @@ class File:
         self.revision = revision
 
     #download the ods file from Drive
-    def download_file(self):
+    def download_file(self, fileid = None, name = None):
+        fileid = self.item['id'] if fileid is None else fileid
+        name = self.item['name'] if name is None else name
         self.LOG.info('Downloading file %s', self.item['name'])
-        request = self.service.files().get_media(fileId=self.item["id"])
+        request = self.service.files().get_media(fileId= fileid)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         done = False
@@ -81,7 +85,7 @@ class File:
             status, done = downloader.next_chunk()
             self.LOG.info("Download file {0}".format(status.progress()*100))
 
-        with open(self.item["name"], "wb") as out:
+        with open(name, "wb") as out:
             out.write(fh.getvalue())
 
     #download the revision from drive
@@ -230,6 +234,13 @@ def main():
 
     page_token = None
 
+    try:
+        shelfFile = shelve.open('log_list')
+    except err as e:
+        LOG.error('error in opening the shelve file')
+
+    global file_already_logged
+
     #make a request until there are no more files to process
     while True:
         # Call the Drive v3 API
@@ -256,11 +267,28 @@ def main():
 
                         if(len(revisions) > 1):
                             #create log for the last revision
+                            log_name = item['name'] + '.log'
+                            log_keys = shelfFile.keys()
+                            log_id = None
+                            if log_name in log_keys:
+                                log_id = shelfFile[log_name]
+                                my_file.download_file(log_id, log_name)
+                                file_already_logged = True
+
                             revision_index = get_revision_index(revisions, current_datetime)
                             my_file.set_revision(revisions[revision_index])
                             my_file.download_revision()
                             try:
                                 my_file.get_difference()
+                                log_metadata = {'name' : log_name, 'parents' : ["1RvdbykGns22dh7t9q6P0mqINk_Ni0x-T"]}
+                                media = MediaFileUpload(log_name, mimetype='text/plain', resumable=True)
+                                if file_already_logged:
+                                    file = service.files().update(fileId=log_id, body=log_metadata, media_body=media, fields='id').execute()
+                                else:
+                                    print("here")
+                                    file = service.files().create(body=log_metadata, media_body=media, fields='id').execute()
+                                    shelfFile[log_name] = file.get('id')
+                                remove_file(log_name, LOG)
                             except KeyError:
                                 LOG.info("error in reading the files content")
                                 traceback.print_exc()
@@ -271,7 +299,15 @@ def main():
                             remove_file("revision_" + item["name"], LOG)
                         else:
                             my_file.file_created()
+                            logname = item['name'] + '.log'
+                            log_metadata = {'name' : logname}
+                            media = MediaFileUpload(logname, mimetype='text/plain')
+                            file = service.files().create(body=log_metadata, media_body=media, fields='id').execute()
+                            shelfFile[logname] = file.get('id')
+                            LOG.info("{} log created and uploaded".format(logname))
+                            remove_file(logname, LOG)
                         remove_file(item["name"], LOG)
+                        file_already_logged = False
 
                         del my_file
 
