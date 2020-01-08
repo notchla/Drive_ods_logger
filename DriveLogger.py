@@ -273,6 +273,7 @@ def main():
                             if log_name in log_keys:
                                 log_id = shelfFile[log_name]
                                 my_file.download_file(log_id, log_name)
+                                print("file already logged")
                                 file_already_logged = True
 
                             revision_index = get_revision_index(revisions, current_datetime)
@@ -280,14 +281,18 @@ def main():
                             my_file.download_revision()
                             try:
                                 my_file.get_difference()
-                                log_metadata = {'name' : log_name, 'parents' : ["1RvdbykGns22dh7t9q6P0mqINk_Ni0x-T"]}
+                                log_metadata = {'name' : log_name, 'parents' : [folder_id]}
                                 media = MediaFileUpload(log_name, mimetype='text/plain', resumable=True)
                                 if file_already_logged:
+                                    log_metadata = {'name' : log_name} #the parents field in the metadata is not writable using the update request, use addParent,removeParents instead
                                     file = service.files().update(fileId=log_id, body=log_metadata, media_body=media, fields='id').execute()
+                                    LOG.info('{} log updated successfully'.format(log_name))
                                 else:
-                                    print("here")
                                     file = service.files().create(body=log_metadata, media_body=media, fields='id').execute()
                                     shelfFile[log_name] = file.get('id')
+                                    LOG.info('{} log created successfully'.format(log_name))
+                                    permissions_metadata = {"type": "anyone", "role": "reader"}
+                                    permissions = service.permissions().create(fileId=file.get('id'), body=permissions_metadata).execute()
                                 remove_file(log_name, LOG)
                             except KeyError:
                                 LOG.info("error in reading the files content")
@@ -300,9 +305,11 @@ def main():
                         else:
                             my_file.file_created()
                             logname = item['name'] + '.log'
-                            log_metadata = {'name' : logname}
-                            media = MediaFileUpload(logname, mimetype='text/plain')
+                            log_metadata = {'name' : logname, 'parents' : [folder_id]}
+                            media = MediaFileUpload(logname, mimetype='text/plain', resumable=True)
                             file = service.files().create(body=log_metadata, media_body=media, fields='id').execute()
+                            permissions_metadata = {"type": "anyone", "role": "reader"}
+                            permissions = service.permissions().create(fileId=file.get('id'), body=permissions_metadata).execute()
                             shelfFile[logname] = file.get('id')
                             LOG.info("{} log created and uploaded".format(logname))
                             remove_file(logname, LOG)
