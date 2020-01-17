@@ -168,6 +168,7 @@ class File:
                     else:
                         if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
                             results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
+                            self.file_log.info(results.keys())
                             if "displayName" in results.keys():
                                 self.lastModifyingUser = results["displayName"]
                             else:
