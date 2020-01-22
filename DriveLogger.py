@@ -136,9 +136,10 @@ class File:
                 else:
                     if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
                         results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                        if "lastModifyingUser" in results.keys():
+                        if "displayName" in results['lastModifyingUser'].keys():
                             self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
                         else:
+                            self.LOG.info("user not found")
                             self.lastModifyingUser = "not found"
                     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.lastModifyingUser))
 
@@ -152,9 +153,10 @@ class File:
                     else:
                         if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
                             results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                            if "lastModifyingUser" in results.keys():
+                            if "displayName" in results['lastModifyingUser'].keys():
                                 self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
                             else:
+                                self.LOG.info("user not found")
                                 self.lastModifyingUser = "not found"
                         self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.lastModifyingUser))
                 i += 1
@@ -168,9 +170,10 @@ class File:
                     else:
                         if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
                             results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                            if "lastModifyingUser" in results.keys():
+                            if "displayName" in results['lastModifyingUser'].keys():
                                 self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
                             else:
+                                self.LOG.info("user not found")
                                 self.lastModifyingUser = "not found"
                         self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.lastModifyingUser))
                 i += 1
