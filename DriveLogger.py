@@ -25,7 +25,7 @@ alphabet = list(ascii_uppercase)
 CRON_TIME = 5 #the time between one execution and the next
 filename_regex = re.compile(r'\d\d-')
 file_already_logged = False
-folder_id = "1zAHgw8uWB9eiDmPw0Egy6pc6cESaWi99" #the id of the folder where the logfiles are stored
+folder_id = "1YXK7queYI6DUFsRueOvUXGPAMMfuv-if" #the id of the folder where the logfiles are stored
 
 def setup_logger(name, log_file, level=logging.WARNING):
 
