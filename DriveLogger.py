@@ -22,10 +22,10 @@ import shelve
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive']
 alphabet = list(ascii_uppercase)
-CRON_TIME = 5 #the time between one execution and the next
+CRON_TIME = 100 #the time between one execution and the next
 filename_regex = re.compile(r'\d\d-')
 file_already_logged = False
-folder_id = "1zAHgw8uWB9eiDmPw0Egy6pc6cESaWi99" #the id of the folder where the logfiles are stored
+folder_id = "1RvdbykGns22dh7t9q6P0mqINk_Ni0x-T" #the id of the folder where the logfiles are stored
 
 def setup_logger(name, log_file, level=logging.WARNING):
 
@@ -68,6 +68,7 @@ class File:
         self.revision = None #DICT that holds the revision information
         self.file_log = None #file logger
         self.lastModifyingUser = None #the user that last modified the file
+        self.revisions = None #list of revisions
 
     def set_revision(self, revision):
         self.revision = revision
@@ -76,7 +77,7 @@ class File:
     def download_file(self, fileid = None, name = None):
         fileid = self.item['id'] if fileid is None else fileid
         name = self.item['name'] if name is None else name
-        self.LOG.info('Downloading file %s', self.item['name'])
+        self.LOG.info('Downloading file %s', name)
         request = self.service.files().get_media(fileId= fileid)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
@@ -89,9 +90,11 @@ class File:
             out.write(fh.getvalue())
 
     #download the revision from drive
-    def download_revision(self):
-        self.LOG.info('Downloading revision for %s', self.item["name"])
-        request = self.service.revisions().get_media(revisionId=self.revision["id"], fileId=self.item["id"])
+    def download_revision(self, revision_id, name):
+        if name in os.listdir():
+            return
+        self.LOG.info('Downloading revision %s', name)
+        request = self.service.revisions().get_media(revisionId=revision_id, fileId=self.item["id"])
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         done = False
@@ -100,10 +103,10 @@ class File:
             self.LOG.info("Download revision {0}".format(status.progress()*100))
 
 
-        with open("revision_" + self.item["name"], "wb") as out:
+        with open(name, "wb") as out:
             out.write(fh.getvalue())
 
-    #setup the logger for the current file
+    #setup the logger" for the current file
     def setup_logger(self, name = None, log_file=None, level=logging.WARNING):
         log_file = self.item["name"]+".log" if log_file is None else log_file
         handler = logging.FileHandler(log_file)
@@ -131,61 +134,64 @@ class File:
                 if(text_modified == ""):
                     text_modified = "\"\""
                 cell_coordinates = self.__calculate_ods_coordinate(index+1, i)
-                if "displayName" in self.item["lastModifyingUser"].keys():
-                    self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.item["lastModifyingUser"]["displayName"]))
-                else:
-                    if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
-                        results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                        if "displayName" in results['lastModifyingUser'].keys():
-                            self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
-                        else:
-                            self.LOG.info("user not found")
-                            self.lastModifyingUser = "not found"
-                    self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.lastModifyingUser))
+                # if "displayName" in self.item["lastModifyingUser"].keys():
+                #     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.item["lastModifyingUser"]["displayName"]))
+                # else:
+                #     if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
+                #         results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
+                #         if "displayName" in results['lastModifyingUser'].keys():
+                #             self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
+                #         else:
+                #             self.LOG.info("user not found")
+                #             self.lastModifyingUser = "not found"
+                #     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.lastModifyingUser))
+                self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.lastModifyingUser))
 
         if(len(row_current) > len(row_modified)):
             i = min_range
             while(i != len(row_current)):
                 if(row_current[i]):
                     cell_coordinates = self.__calculate_ods_coordinate(index+1, i)
-                    if "displayName" in self.item["lastModifyingUser"].keys():
-                        self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.item["lastModifyingUser"]["displayName"]))
-                    else:
-                        if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
-                            results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                            if "displayName" in results['lastModifyingUser'].keys():
-                                self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
-                            else:
-                                self.LOG.info("user not found")
-                                self.lastModifyingUser = "not found"
-                        self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.lastModifyingUser))
+                    # if "displayName" in self.item["lastModifyingUser"].keys():
+                    #     self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.item["lastModifyingUser"]["displayName"]))
+                    # else:
+                    #     if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
+                    #         results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
+                    #         if "displayName" in results['lastModifyingUser'].keys():
+                    #             self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
+                    #         else:
+                    #             self.LOG.info("user not found")
+                    #             self.lastModifyingUser = "not found"
+                    #     self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.lastModifyingUser))
+                    self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.lastModifyingUser))
                 i += 1
         elif(len(row_current) < len(row_modified)):
             i = min_range
             while(i != len(row_modified)):
                 if(row_modified[i]):
                     cell_coordinates = self.__calculate_ods_coordinate(index+1, i)
-                    if "displayName" in self.item["lastModifyingUser"].keys():
-                        self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.item["lastModifyingUser"]["displayName"]))
-                    else:
-                        if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
-                            results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
-                            if "displayName" in results['lastModifyingUser'].keys():
-                                self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
-                            else:
-                                self.LOG.info("user not found")
-                                self.lastModifyingUser = "not found"
-                        self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.lastModifyingUser))
+                    # if "displayName" in self.item["lastModifyingUser"].keys():
+                    #     self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.item["lastModifyingUser"]["displayName"]))
+                    # else:
+                    #     if self.lastModifyingUser is None or self.lastModifyingUser == "not found":
+                    #         results = self.service.files().get(fileId=self.item["id"], fields="lastModifyingUser").execute()
+                    #         if "displayName" in results['lastModifyingUser'].keys():
+                    #             self.lastModifyingUser = results["lastModifyingUser"]["displayName"]
+                    #         else:
+                    #             self.LOG.info("user not found")
+                    #             self.lastModifyingUser = "not found"
+                    #     self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.lastModifyingUser))
+                    self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.lastModifyingUser))
                 i += 1
 
     #read the ods file as a dict and call __get_difference_rows on every row
-    def get_difference(self):
+    def get_difference(self, name1, name2):
         self.file_log.info("<---------BEGIN LOG--------->")
-        data_current = p.get_data(self.item["name"])
+        data_current = p.get_data(name2)
         json_string_current = json.dumps(data_current, default=date_converter)
         json_dict_current = json.loads(json_string_current)
 
-        data_modified = p.get_data("revision_" + self.item["name"])
+        data_modified = p.get_data(name1)
         json_string_modified = json.dumps(data_modified, default=date_converter)
         json_dict_modified = json.loads(json_string_modified)
 
@@ -204,6 +210,29 @@ class File:
 
     def file_created(self):
         self.file_log.info("the file is created")
+
+    def set_lastModifyingUser(self, username):
+        self.lastModifyingUser = username
+
+    def compute_revisions(self, last_revision_index):
+        for i in range(last_revision_index, len(self.revisions)-1):
+            name1 = "revision" + str(i) + "_" + self.item["name"]
+            name2 = "revision" + str(i+1) + "_" + self.item["name"]
+            metadata = self.service.revisions().get(fileId=self.item["id"], revisionId=self.revisions[i+1]["id"], fields="lastModifyingUser").execute()
+            lastModifyingUser = metadata["lastModifyingUser"]["displayName"]
+            self.set_lastModifyingUser(lastModifyingUser)
+            self.download_revision(self.revisions[i]['id'], name1)
+            self.download_revision(self.revisions[i+1]['id'], name2)
+            self.get_difference(name1, name2)
+            if(os.path.exists(name1)):
+                os.remove(name1)
+            else:
+                self.LOG.info("file {0} does not exist".format(name1))
+
+    def set_revisions(self, revisions):
+        self.revisions = revisions
+
+
 
 def remove_file(filename, LOG):
     if(os.path.exists(filename)):
@@ -262,28 +291,27 @@ def main():
                     minutes = minutes_from_last_change(item["modifiedTime"], current_datetime)
                     if(minutes < CRON_TIME):
                         my_file = File(service, item, LOG)
-                        my_file.download_file()
+                        #my_file.download_file()
 
                         results = service.revisions().list(fileId=item["id"]).execute()
                         revisions = results.get("revisions", [])
                         my_file.setup_logger(level=logging.INFO)
+                        my_file.set_revisions(revisions)
 
                         if(len(revisions) > 1):
-                            #create log for the last revision
                             log_name = item['name'] + '.log'
                             log_keys = shelfFile.keys()
                             log_id = None
                             if log_name in log_keys:
                                 log_id = shelfFile[log_name]
                                 my_file.download_file(log_id, log_name)
-                                print("file already logged")
                                 file_already_logged = True
 
                             revision_index = get_revision_index(revisions, current_datetime)
-                            my_file.set_revision(revisions[revision_index])
-                            my_file.download_revision()
+                            #my_file.set_revision(revisions[revision_index])
+                            #my_file.download_revision()
                             try:
-                                my_file.get_difference()
+                                my_file.compute_revisions(revision_index)
                                 log_metadata = {'name' : log_name, 'parents' : [folder_id]}
                                 media = MediaFileUpload(log_name, mimetype='text/plain', resumable=True)
                                 if file_already_logged:
@@ -303,8 +331,10 @@ def main():
                                 remove_file(item["name"]+".log", LOG)
                             except Exception as e:
                                 LOG.info("error : {0}".format(str(e)))
+                                traceback.print_exc()
+
                                 remove_file(item["name"]+".log", LOG)
-                            remove_file("revision_" + item["name"], LOG)
+                            #remove_file("revision_" + item["name"], LOG)
                         else:
                             my_file.file_created()
                             logname = item['name'] + '.log'
@@ -316,7 +346,8 @@ def main():
                             shelfFile[logname] = file.get('id')
                             LOG.info("{} log created and uploaded".format(logname))
                             remove_file(logname, LOG)
-                        remove_file(item["name"], LOG)
+                        name_last_revision = "revision" + str(len(revisions)-1) + "_" + item["name"]
+                        remove_file(name_last_revision, LOG)
                         file_already_logged = False
 
                         del my_file
