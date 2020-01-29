@@ -15,6 +15,7 @@ from string import ascii_uppercase
 import traceback
 import re
 import shelve
+from myconfig import *
 
 ''' TODO:
     '''
@@ -22,10 +23,10 @@ import shelve
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive']
 alphabet = list(ascii_uppercase)
-CRON_TIME = 100 #the time between one execution and the next
+#CRON_TIME = 5 #the time between one execution and the next
 filename_regex = re.compile(r'\d\d-')
 file_already_logged = False
-folder_id = "1RvdbykGns22dh7t9q6P0mqINk_Ni0x-T" #the id of the folder where the logfiles are stored
+#folder_id = "1RvdbykGns22dh7t9q6P0mqINk_Ni0x-T" #the id of the folder where the logfiles are stored
 
 def setup_logger(name, log_file, level=logging.WARNING):
 
@@ -209,7 +210,8 @@ class File:
         self.file_log.info("<---------END LOG--------->")
 
     def file_created(self):
-        self.file_log.info("the file is created")
+        metadata = self.service.revisions().get(fileId=self.item["id"], revisionId=self.revisions[-1]["id"], fields="lastModifyingUser").execute()
+        self.file_log.info("{} has created the file".format(metadata["lastModifyingUser"]["displayName"]))
 
     def set_lastModifyingUser(self, username):
         self.lastModifyingUser = username
