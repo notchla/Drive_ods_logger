@@ -16,6 +16,7 @@ import traceback
 import re
 import shelve
 from myconfig import *
+import openpyxl
 
 ''' TODO:
     '''
@@ -235,6 +236,64 @@ class File:
         self.revisions = revisions
 
 
+class Excel_File(File):
+    def __init__(self, service, item, LOG):
+        super(Excel_File, self).__init__(service, item, LOG)
+        self.wb_current = None
+        self.wb_modified = None
+
+    def __get_difference_rows(self, row_current, row_modified):
+        row_current = list(row_current)
+        row_modified = list(row_modified)
+        min_range = min(len(row_current), len(row_modified))
+        for i in range(0, min_range):
+            current_cell = row_current[i]
+            modified_cell = row_modified[i]
+            if (current_cell.value != modified_cell.value):
+                text_current = current_cell.value
+                if(text_current == ""):
+                    text_current = "\"\""
+                text_modified = modified_cell.value
+                if(text_modified == ""):
+                    text_modified = "\"\""
+
+                self.file_log.info("{0} changed from {1} to {2} by {3}".format(current_cell.coordinate, text_modified, text_current, self.lastModifyingUser))
+        if(len(row_current) > len(row_modified)):
+            i = min_range
+            while(i != len(row_current)):
+                current_cell = row_current[i]
+                if(current_cell.value):
+                    self.file_log.info("{0} changed from \"\" to {1} by {2}".format(current_cell.coordinate, current_cell.value, self.lastModifyingUser))
+                i +=1
+        elif(len(row_current) < len(row_modified)):
+            i = min_range
+            while(i != len(row_modified)):
+                modified_cell = row_modified[i]
+                if(modified_cell.value):
+                    self.file_log.info("{0} changed from {1} to \"\" by {2}".format(modified_cell.coordinate, modified_cell.value, self.lastModifyingUser))
+                i +=1
+
+
+    def get_difference(self, name1, name2):
+        self.file_log.info("<---------BEGIN LOG--------->")
+        self.wb_current = openpyxl.load_workbook(name2)
+        self.wb_modified = openpyxl.load_workbook(name1)
+        sheets = self.wb_current.get_sheet_names()
+        for name in sheets:
+            if (name != "modifiche"):
+
+                sheet_current = self.wb_current.get_sheet_by_name(name)
+                sheet_modified = self.wb_modified.get_sheet_by_name(name)
+                for count, row_current in enumerate(sheet_current.iter_rows()):
+                    row_modified = sheet_modified[count + 1]
+                    self.__get_difference_rows(row_current, row_modified)
+
+
+
+        self.file_log.info("<---------END LOG--------->")
+
+
+
 
 def remove_file(filename, LOG):
     if(os.path.exists(filename)):
@@ -279,7 +338,7 @@ def main():
     while True:
         # Call the Drive v3 API
         response = service.files().list(
-            q = "mimeType='application/vnd.oasis.opendocument.spreadsheet' and trashed=false", pageSize=1000, fields="nextPageToken, files(id,name,modifiedTime,lastModifyingUser)", pageToken=page_token).execute()
+            q = "(mimeType='application/vnd.oasis.opendocument.spreadsheet' or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') and trashed=false", pageSize=1000, fields="nextPageToken, files(id,name,modifiedTime,lastModifyingUser,mimeType)", pageToken=page_token).execute()
         items = response.get('files', [])
 
         current_datetime = datetime.datetime.utcnow()
@@ -292,7 +351,10 @@ def main():
                 if re_results is not None:
                     minutes = minutes_from_last_change(item["modifiedTime"], current_datetime)
                     if(minutes < CRON_TIME):
-                        my_file = File(service, item, LOG)
+                        if (item["mimeType"] == "application/vnd.oasis.opendocument.spreadsheet"):
+                            my_file = File(service, item, LOG)
+                        else:
+                            my_file = Excel_File(service, item, LOG)
                         #my_file.download_file()
 
                         results = service.revisions().list(fileId=item["id"]).execute()
