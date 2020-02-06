@@ -71,6 +71,7 @@ class File:
         self.file_log = None #file logger
         self.lastModifyingUser = None #the user that last modified the file
         self.revisions = None #list of revisions
+        self.modifiedTime = None #the the last modification time
 
     def set_revision(self, revision):
         self.revision = revision
@@ -147,7 +148,7 @@ class File:
                 #             self.LOG.info("user not found")
                 #             self.lastModifyingUser = "not found"
                 #     self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.lastModifyingUser))
-                self.file_log.info("{0} changed from {1} to {2} by {3}". format(cell_coordinates, text_modified, text_current, self.lastModifyingUser))
+                self.file_log.info("{0} changed from {1} to {2} by {3} at {4}". format(cell_coordinates, text_modified, text_current, self.lastModifyingUser, self.modifiedTime))
 
         if(len(row_current) > len(row_modified)):
             i = min_range
@@ -165,7 +166,7 @@ class File:
                     #             self.LOG.info("user not found")
                     #             self.lastModifyingUser = "not found"
                     #     self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.lastModifyingUser))
-                    self.file_log.info("{0} changed from \"\" to {1} by {2}".format(cell_coordinates, row_current[i], self.lastModifyingUser))
+                    self.file_log.info("{0} changed from \"\" to {1} by {2} at {3}".format(cell_coordinates, row_current[i], self.lastModifyingUser, self.modifiedTime))
                 i += 1
         elif(len(row_current) < len(row_modified)):
             i = min_range
@@ -183,7 +184,7 @@ class File:
                     #             self.LOG.info("user not found")
                     #             self.lastModifyingUser = "not found"
                     #     self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.lastModifyingUser))
-                    self.file_log.info("{0} changed from {1} to \"\" by {2}".format(cell_coordinates, row_modified[i], self.lastModifyingUser))
+                    self.file_log.info("{0} changed from {1} to \"\" by {2} at {3}".format(cell_coordinates, row_modified[i], self.lastModifyingUser, self.modifiedTime))
                 i += 1
 
     #read the ods file as a dict and call __get_difference_rows on every row
@@ -211,19 +212,23 @@ class File:
         self.file_log.info("<---------END LOG--------->")
 
     def file_created(self):
-        metadata = self.service.revisions().get(fileId=self.item["id"], revisionId=self.revisions[-1]["id"], fields="lastModifyingUser").execute()
-        self.file_log.info("{} has created the file".format(metadata["lastModifyingUser"]["displayName"]))
+        metadata = self.service.revisions().get(fileId=self.item["id"], revisionId=self.revisions[-1]["id"], fields="lastModifyingUser, modifiedTime").execute()
+        self.file_log.info("{0} has created the file at {1}".format(metadata["lastModifyingUser"]["displayName"], metadata["modifiedTime"]))
 
     def set_lastModifyingUser(self, username):
         self.lastModifyingUser = username
+
+    def set_modifiedTime(self,modifiedTime):
+        self.modifiedTime = modifiedTime
 
     def compute_revisions(self, last_revision_index):
         for i in range(last_revision_index, len(self.revisions)-1):
             name1 = "revision" + str(i) + "_" + self.item["name"]
             name2 = "revision" + str(i+1) + "_" + self.item["name"]
-            metadata = self.service.revisions().get(fileId=self.item["id"], revisionId=self.revisions[i+1]["id"], fields="lastModifyingUser").execute()
+            metadata = self.service.revisions().get(fileId=self.item["id"], revisionId=self.revisions[i+1]["id"], fields="lastModifyingUser, modifiedTime").execute()
             lastModifyingUser = metadata["lastModifyingUser"]["displayName"]
             self.set_lastModifyingUser(lastModifyingUser)
+            self.set_modifiedTime(metadata["modifiedTime"])
             self.download_revision(self.revisions[i]['id'], name1)
             self.download_revision(self.revisions[i+1]['id'], name2)
             self.get_difference(name1, name2)
@@ -257,20 +262,20 @@ class Excel_File(File):
                 if(text_modified == ""):
                     text_modified = "\"\""
 
-                self.file_log.info("{0} changed from {1} to {2} by {3}".format(current_cell.coordinate, text_modified, text_current, self.lastModifyingUser))
+                self.file_log.info("{0} changed from {1} to {2} by {3} at {4}".format(current_cell.coordinate, text_modified, text_current, self.lastModifyingUser, self.modifiedTime))
         if(len(row_current) > len(row_modified)):
             i = min_range
             while(i != len(row_current)):
                 current_cell = row_current[i]
                 if(current_cell.value):
-                    self.file_log.info("{0} changed from \"\" to {1} by {2}".format(current_cell.coordinate, current_cell.value, self.lastModifyingUser))
+                    self.file_log.info("{0} changed from \"\" to {1} by {2} at {3}".format(current_cell.coordinate, current_cell.value, self.lastModifyingUser, self.modifiedTime))
                 i +=1
         elif(len(row_current) < len(row_modified)):
             i = min_range
             while(i != len(row_modified)):
                 modified_cell = row_modified[i]
                 if(modified_cell.value):
-                    self.file_log.info("{0} changed from {1} to \"\" by {2}".format(modified_cell.coordinate, modified_cell.value, self.lastModifyingUser))
+                    self.file_log.info("{0} changed from {1} to \"\" by {2} at {3}".format(modified_cell.coordinate, modified_cell.value, self.lastModifyingUser, self.modifiedTime))
                 i +=1
 
 
