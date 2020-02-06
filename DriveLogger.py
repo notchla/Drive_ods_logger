@@ -213,13 +213,28 @@ class File:
 
     def file_created(self):
         metadata = self.service.revisions().get(fileId=self.item["id"], revisionId=self.revisions[-1]["id"], fields="lastModifyingUser, modifiedTime").execute()
-        self.file_log.info("{0} has created the file at {1}".format(metadata["lastModifyingUser"]["displayName"], metadata["modifiedTime"]))
+        modifiedTime = metadata["modifiedTime"]
+        file_time = modifiedTime.split('T')
+        file_time_date = file_time[0]
+        file_time_hour = file_time[1].split('.')[0]
+        time_list = file_time_hour.split(':')
+        correct_hour = int(time_list[0]) + 1
+        file_time_hour = str(correct_hour) + ":" + time_list[1] + ":" +time_list[2]
+        file_time_str = file_time_date + " " +file_time_hour
+        self.file_log.info("{0} has created the file at {1}".format(metadata["lastModifyingUser"]["displayName"], file_time_str))
 
     def set_lastModifyingUser(self, username):
         self.lastModifyingUser = username
 
     def set_modifiedTime(self,modifiedTime):
-        self.modifiedTime = modifiedTime
+        file_time = modifiedTime.split('T')
+        file_time_date = file_time[0]
+        file_time_hour = file_time[1].split('.')[0]
+        time_list = file_time_hour.split(':')
+        correct_hour = (int(time_list[0]) + 1) % 24
+        file_time_hour = str(correct_hour) + ":" + time_list[1] + ":" +time_list[2]
+        file_time_str = file_time_date + " " +file_time_hour
+        self.modifiedTime = file_time_str
 
     def compute_revisions(self, last_revision_index):
         for i in range(last_revision_index, len(self.revisions)-1):
