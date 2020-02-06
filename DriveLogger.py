@@ -218,7 +218,7 @@ class File:
         file_time_date = file_time[0]
         file_time_hour = file_time[1].split('.')[0]
         time_list = file_time_hour.split(':')
-        correct_hour = int(time_list[0]) + 1
+        correct_hour = (int(time_list[0]) + 1) % 24
         file_time_hour = str(correct_hour) + ":" + time_list[1] + ":" +time_list[2]
         file_time_str = file_time_date + " " +file_time_hour
         self.file_log.info("{0} has created the file at {1}".format(metadata["lastModifyingUser"]["displayName"], file_time_str))
