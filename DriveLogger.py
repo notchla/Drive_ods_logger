@@ -58,7 +58,7 @@ def date_converter(obj):
 
 def get_revision_index(revisions, current_datetime):
     iter = 0
-    while(minutes_from_last_change(revisions[iter]["modifiedTime"], current_datetime) > CRON_TIME):
+    while(minutes_from_last_change(revisions[iter]["modifiedTime"], current_datetime) >= CRON_TIME):
         iter = iter + 1
     return iter - 1 if iter -1 > 0 else 0 #find the first revision in the CRON_TIME minutes window
 
